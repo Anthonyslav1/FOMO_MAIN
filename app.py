@@ -12,7 +12,6 @@ import schedule
 from threading import Lock
 import os
 from dotenv import load_dotenv
-from flask import Flask
 
 # Load environment variables from .env file
 load_dotenv()
@@ -22,7 +21,7 @@ bot_link = os.getenv('BOT_LINK')
 CHANNEL_ID = os.getenv('CHANNEL_ID')
 
 global selected_tokens
-global messageID
+
 global latest_market_caps
 global posting_lock
 
@@ -229,7 +228,7 @@ def post_market_cap_update_on_telegram(token, new_market_cap, increase_percentag
 
 def check_and_post_market_cap_increase(selected_token):
     """Checks the market cap increase for the selected token, posts if it exceeds 15%"""
-    global selected_tokens, first_market_caps, latest_market_caps, messageID
+    global selected_tokens, first_market_caps, latest_market_caps
 
     if selected_token:
         dexscreener_api_url = f"https://api.dexscreener.com/latest/dex/tokens/{selected_token['contract_address']}"
@@ -245,13 +244,15 @@ def check_and_post_market_cap_increase(selected_token):
             if increase_percentage >= 15: 
                 if (new_market_cap * 10)  > (first_market_caps[selected_token['name']] + (latest_market_caps[selected_token['name']] *10)):
                     latest_market_caps[selected_token['name']] = new_market_cap
-                    post_market_cap_update_on_telegram(selected_token, latest_market_caps[selected_token['name']], increase_percentage, messageID)
+                    post_market_cap_update_on_telegram(selected_token, latest_market_caps[selected_token['name']], increase_percentage, selected_token['messageID'] )
 
    
             elif increase_percentage <= -30:
                 print(f"Market cap decrease is within -30%. Stopping checks for {selected_token['name']}.")
-                selected_tokens.remove(selected_token)
-                return
+                try:
+                    selected_tokens.remove(selected_token)
+                except:
+                    return
             else:
                 print(f"No significant market cap change for {selected_token['name']}.")
         else:
@@ -259,7 +260,7 @@ def check_and_post_market_cap_increase(selected_token):
 
 
 def schedule_random_post():
-    global messageID
+    
     while True:
         with posting_lock:
             # Fetch and analyze trending tokens
@@ -272,7 +273,7 @@ def schedule_random_post():
                 selected_token = select_random_token_with_telegram_link()
                 print("Token already choosen!")
             elif selected_token:
-                messageID = post_token_on_telegram_bot(selected_token)
+                selected_token['messageID'] = post_token_on_telegram_bot(selected_token)
                 print(f"Scheduled token post for: {selected_token['name']}")
                 
                 # Add the selected token to the list of selected tokens
@@ -281,10 +282,10 @@ def schedule_random_post():
 
                 
                 # Schedule market cap checks for the selected token every 5 minutes
-                schedule.every(5).minutes.do(check_and_post_market_cap_increase, selected_token)
+                schedule.every(1).minutes.do(check_and_post_market_cap_increase, selected_token)
         
-        # Wait for a random time between 1 and 6 hours
-        random_time = (300) # Convert hours to seconds
+        # Wait for a random time between 3 and 6 hours
+        random_time = random.randint(150, 300)  # Convert hours to seconds
         time.sleep(random_time)
 
 # Start the random post scheduler in a daemon thread
@@ -297,14 +298,6 @@ while True:
     schedule.run_pending()
     time.sleep(1)
 
-
-app = Flask(__name__)
-@app.route('/')
-def home():
-    return "Hello, Render"
-
 if __name__ == "__main__":
     # Start the main program
-    port = int(os.environ.get("PORT", 8000))
-    # Start the Flask app
-    app.run(host="0.0.0.0", port=port)
+    pass
