@@ -284,7 +284,7 @@ def schedule_random_post():
                 schedule.every(5).minutes.do(check_and_post_market_cap_increase, selected_token)
         
         # Wait for a random time between 1 and 6 hours
-        random_time = random.randint(3600, 21600)  # Convert hours to seconds
+        random_time = (300) # Convert hours to seconds
         time.sleep(random_time)
 
 # Start the random post scheduler in a daemon thread
