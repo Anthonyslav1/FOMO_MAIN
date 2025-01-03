@@ -12,6 +12,7 @@ import schedule
 from threading import Lock
 import os
 from dotenv import load_dotenv
+from flask import Flask
 
 # Load environment variables from .env file
 load_dotenv()
@@ -296,6 +297,14 @@ while True:
     schedule.run_pending()
     time.sleep(1)
 
+
+app = Flask(__name__)
+@app.route('/')
+def home():
+    return "Hello, Render"
+
 if __name__ == "__main__":
     # Start the main program
-    pass
+    port = int(os.environ.get("PORT", 8000))
+    # Start the Flask app
+    app.run(host="0.0.0.0", port=port)
